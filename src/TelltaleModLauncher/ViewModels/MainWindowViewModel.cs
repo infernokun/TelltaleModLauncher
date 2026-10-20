@@ -220,11 +220,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
             if (!plan.IsCompatible)
             {
-                var madeFor = plan.ModGame is { } other ? GameCatalog.DisplayName(other)
-                    : package.Info.ModCompatibility.Length > 0 ? $"\"{package.Info.ModCompatibility}\""
-                    : "a game it doesn't name";
-                await shell.ShowMessageAsync("This mod is for a different game", $"'{name}' was made for {madeFor}, not {game.Name}.");
-                return;
+                if (plan.ModGame is { } other)
+                {
+                    await shell.ShowMessageAsync("This mod is for a different game", $"'{name}' was made for {GameCatalog.DisplayName(other)}, not {game.Name}.");
+                    return;
+                }
+
+                var claim = package.Info.ModCompatibility.Length > 0
+                    ? $"says it's for \"{package.Info.ModCompatibility}\", which the launcher doesn't recognize"
+                    : "doesn't say which game it's for";
+                if (!await shell.ConfirmAsync("Unknown game", $"'{name}' {claim}. Install it for {game.Name} anyway?", "Install anyway"))
+                    return;
             }
 
             var replacing = new List<InstalledMod>();

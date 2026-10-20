@@ -235,6 +235,109 @@ public class ModManagerTests
         Assert.False(Assert.Single(manager.Scan()).HasMissingFiles);
     }
 
+    /// <summary>The shape of the mods on the wiki: Definitive_Edition, a top folder, macOS junk.</summary>
+    [Fact]
+    public void A_zip_shaped_like_the_published_mods_installs_cleanly()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        var info = """
+            {
+              "ModDisplayName": "Graphic Black Disabler for S4",
+              "ModVersion": "1.0.0",
+              "ModAuthor": "changemymindpls1",
+              "ModCompatibility": "The_Walking_Dead_Definitive_Edition",
+              "ModFiles": [
+                "_resdesc_50_ProjectSeason4_GraphicBlackDisabler.lua",
+                "WDC_pc_ProjectSeason4_data_GraphicBlackDisabler.ttarch2"
+              ]
+            }
+            """;
+        var zip = folder.CreateZip("gbd.zip", new()
+        {
+            ["__MACOSX/graphic-black-disabler/._modinfo_graphic_black_disabler.json"] = "\u0000\u0005junk",
+            ["graphic-black-disabler/_resdesc_50_ProjectSeason4_GraphicBlackDisabler.lua"] = "\u001bLEo",
+            ["graphic-black-disabler/modinfo_graphic_black_disabler.json"] = info,
+            ["graphic-black-disabler/WDC_pc_ProjectSeason4_data_GraphicBlackDisabler.ttarch2"] = "",
+            ["__MACOSX/graphic-black-disabler/._WDC_pc_ProjectSeason4_data_GraphicBlackDisabler.ttarch2"] = "junk",
+            ["graphic-black-disabler/.DS_Store"] = "junk",
+        });
+
+        var package = ModManager.ReadPackage(zip);
+        var plan = manager.Plan(package, Wdc, []);
+        Assert.True(plan.IsCompatible);
+        manager.Install(package);
+
+        Assert.Equal(
+            ["WDC_pc_ProjectSeason4_data_GraphicBlackDisabler.ttarch2", "_resdesc_50_ProjectSeason4_GraphicBlackDisabler.lua", "modinfo_graphic_black_disabler.json"],
+            Directory.GetFiles(modsDir).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        Assert.False(Assert.Single(manager.Scan()).HasMissingFiles);
+    }
+
+    [Fact]
+    public void Listed_subfolder_paths_are_kept()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        var zip = folder.CreateZip("episodes.zip", new()
+        {
+            ["modinfo.json"] = """
+                { "ModDisplayName": "Episodes", "ModFiles": ["Episode101/data.ttarch2", "Episode102/data.ttarch2", "Episode103/only.ttarch2"] }
+                """,
+            ["Episode101/data.ttarch2"] = "101",
+            ["mod/Episode102/data.ttarch2"] = "102",
+            ["only.ttarch2"] = "103",
+        });
+
+        manager.Install(ModManager.ReadPackage(zip));
+
+        Assert.Equal("101", File.ReadAllText(Path.Combine(modsDir, "Episode101", "data.ttarch2")));
+        Assert.Equal("102", File.ReadAllText(Path.Combine(modsDir, "Episode102", "data.ttarch2")));
+        Assert.Equal("103", File.ReadAllText(Path.Combine(modsDir, "Episode103", "only.ttarch2")));
+        var mod = Assert.Single(manager.Scan());
+        Assert.False(mod.HasMissingFiles);
+
+        manager.Remove(mod);
+        Assert.Empty(Directory.GetFiles(modsDir, "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public void A_listed_path_outside_the_folder_stops_the_install_before_anything_changes()
+    {
+        using var folder = new TestFolder();
+        var (manager, gameDir, modsDir) = NewGame(folder);
+        manager.Install(ModManager.ReadPackage(folder.CreateModZip("Escape", files: ["Keep.ttarch2"])));
+        var installed = manager.Scan();
+        var zip = folder.CreateZip("escape.zip", new()
+        {
+            ["modinfo.json"] = """{ "ModDisplayName": "Escape", "ModVersion": "2", "ModFiles": ["../../evil.ttarch2"] }""",
+            ["evil.ttarch2"] = "",
+        });
+
+        Assert.Throws<ModPackageException>(() => manager.Install(ModManager.ReadPackage(zip), installed));
+
+        Assert.True(File.Exists(Path.Combine(modsDir, "Keep.ttarch2")));
+        Assert.Single(manager.Scan());
+        Assert.False(File.Exists(Path.Combine(Path.GetDirectoryName(gameDir)!, "evil.ttarch2")));
+        Assert.Empty(Directory.GetDirectories(modsDir));
+    }
+
+    [Fact]
+    public void Remove_ignores_listed_paths_outside_the_folder()
+    {
+        using var folder = new TestFolder();
+        var (manager, gameDir, modsDir) = NewGame(folder);
+        var outside = Path.Combine(folder.Root, "precious.txt");
+        File.WriteAllText(outside, "keep me");
+        File.WriteAllText(Path.Combine(modsDir, "bad.json"),
+            """{ "ModDisplayName": "Bad", "ModFiles": ["../../precious.txt"], "InstalledGameFiles": ["../precious.txt"] }""");
+
+        manager.Remove(manager.Scan().Single());
+
+        Assert.Equal("keep me", File.ReadAllText(outside));
+        Assert.Empty(manager.Scan());
+    }
+
     [Fact]
     public void Mod_info_accepts_numbers_and_skips_non_mod_json()
     {
@@ -242,7 +345,7 @@ public class ModManagerTests
 
         Assert.NotNull(mod);
         Assert.Equal("1.5", mod.ModVersion);
-        Assert.Equal(["a.ttarch2"], mod.ModFiles);
+        Assert.Equal(["dir/a.ttarch2"], mod.ModFiles);
         Assert.Null(Mod.TryParse("""{ "name": "package" }"""));
         Assert.Null(Mod.TryParse("not json"));
         Assert.Null(Mod.TryParse("""{ "ModDisplayName": "A", "ModDisplayName": "B" }"""));

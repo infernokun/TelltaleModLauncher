@@ -72,6 +72,34 @@ public class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task The_definitive_edition_name_the_published_mods_use_installs_without_asking()
+    {
+        using var folder = new TestFolder();
+        var (vm, shell, _, _) = Setup(folder);
+
+        await vm.InstallZipAsync(folder.CreateModZip("Load Any Level", game: "The_Walking_Dead_Definitive_Edition"));
+
+        Assert.Single(vm.Mods);
+        Assert.Empty(shell.Confirmations);
+        Assert.Equal("The Walking Dead: The Telltale Definitive Series", vm.Mods[0].MadeFor);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_mod_for_an_unknown_game_asks_first(bool answer)
+    {
+        using var folder = new TestFolder();
+        var (vm, shell, _, _) = Setup(folder);
+        shell.ConfirmAnswer = answer;
+
+        await vm.InstallZipAsync(folder.CreateModZip("Mystery", game: "Some_Future_Game"));
+
+        Assert.Contains("Some_Future_Game", Assert.Single(shell.Confirmations));
+        Assert.Equal(answer ? 1 : 0, vm.Mods.Count);
+    }
+
+    [Fact]
     public async Task Declining_a_conflict_changes_nothing_and_accepting_swaps_the_mods()
     {
         using var folder = new TestFolder();

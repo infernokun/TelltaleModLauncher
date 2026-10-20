@@ -11,10 +11,13 @@ public sealed class Mod
     public string ModAuthor { get; set; } = "";
     public string ModCompatibility { get; set; } = "";
 
-    /// <summary>Files that go in the game's mods folder (Archives, Packs or Pack).</summary>
+    /// <summary>
+    /// Files that go in the game's mods folder (Archives, Packs or Pack). Paths are relative to
+    /// that folder, so games that split episodes into subfolders can list "Episode101/x.ttarch2".
+    /// </summary>
     public List<string> ModFiles { get; set; } = [];
 
-    /// <summary>Files that go next to the game executable, such as .ini configs.</summary>
+    /// <summary>Files that go in the folder of the game executable, such as .ini configs. Relative to that folder.</summary>
     public List<string> ModFilesGameDirectory { get; set; } = [];
 
     public int? ModResourcePriority { get; set; }
@@ -69,11 +72,20 @@ public sealed class Mod
     /// <summary>The file name part of a path from a zip or a mod json, with either slash.</summary>
     public static string FileName(string path) => Path.GetFileName(path.Replace('\\', '/'));
 
+    /// <summary>A path from a zip or a mod json with forward slashes and no leading slash or "./".</summary>
+    public static string RelativePath(string path)
+    {
+        var relative = path.Replace('\\', '/').Trim();
+        while (relative.StartsWith("./", StringComparison.Ordinal))
+            relative = relative[2..];
+        return relative.TrimStart('/');
+    }
+
     private static string Text(JsonNode? node) => node is JsonValue value ? value.ToString().Trim() : "";
 
     private static List<string> Files(JsonNode? node) =>
         node is JsonArray array
-            ? array.Select(Text).Select(FileName).Where(f => f.Length > 0).ToList()
+            ? array.Select(Text).Select(RelativePath).Where(f => f.Length > 0 && !f.EndsWith('/')).ToList()
             : [];
 }
 

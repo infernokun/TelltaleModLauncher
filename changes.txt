@@ -44,3 +44,8 @@ v0.7.0 (W.I.P)
 - [Fix] Remove all only deletes mod info files, not every .json in the Archives folder.
 - [Fix] Mod zips are read in place instead of extracting the info file next to the download.
 - [Fix] A settings file that can't be read is backed up and replaced instead of leaving the launcher half loaded.
+- [Fix] Mods that say they are for "The_Walking_Dead_Definitive_Edition", which every mod on the supported list does, are accepted as Definitive Series mods. Before, the first mod installed but every mod after it was rejected.
+- [Fix] Adding a mod no longer races a folder watcher that could delete the mod's files halfway through the install. This is the likely cause of mods vanishing after a restart and of mods not loading in game (upstream issues #1 and #2).
+- [Fix] __MACOSX folders and ._ files in a zip are skipped. Load Any Level 3.2 ships them, and before it could not be added and left junk files in Archives.
+- [Fix] ModFiles entries with subfolders, used by games with Packs or Pack folders, are installed into those subfolders.
+- [Changed] A mod that names a game the launcher doesn't know asks whether to install it anyway instead of refusing.

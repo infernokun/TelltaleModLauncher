@@ -100,9 +100,23 @@ public static class GameCatalog
         _ => version.ToString().Replace('_', ' ')
     };
 
+    /// <summary>
+    /// Other names mods use for a game. Every mod listed on the wiki says
+    /// "The_Walking_Dead_Definitive_Edition", which was never one of the names above.
+    /// </summary>
+    private static readonly Dictionary<string, GameVersion> Aliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["The_Walking_Dead_Definitive_Edition"] = GameVersion.The_Walking_Dead_Definitive_Series,
+    };
+
     /// <summary>Parses a mod's ModCompatibility value.</summary>
-    public static bool TryParse(string? value, out GameVersion version) =>
-        Enum.TryParse(value?.Trim(), ignoreCase: true, out version) && Enum.IsDefined(version);
+    public static bool TryParse(string? value, out GameVersion version)
+    {
+        var text = value?.Trim();
+        if (text != null && Aliases.TryGetValue(text, out version))
+            return true;
+        return Enum.TryParse(text, ignoreCase: true, out version) && Enum.IsDefined(version);
+    }
 
     /// <summary>LibTelltale's ID for each game, kept for resource description editing.</summary>
     public static string LibTelltaleId(GameVersion version) => version switch

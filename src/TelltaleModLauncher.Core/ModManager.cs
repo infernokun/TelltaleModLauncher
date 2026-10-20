@@ -57,7 +57,7 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
         try
         {
             using var archive = ZipFile.OpenRead(zipPath);
-            foreach (var entry in archive.Entries.Where(e => e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+            foreach (var entry in archive.Entries.Where(e => e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && !IsJunk(e.FullName)))
             {
                 if (ReadInfo(entry) is { } info)
                     return new ModPackage(Path.GetFullPath(zipPath), info, entry.FullName);
@@ -100,16 +100,15 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
     }
 
     /// <summary>
-    /// Extracts a package. Files listed in ModFilesGameDirectory go next to the game exe, and a
-    /// game file they replace is kept as a backup. Everything else goes in the mods folder.
-    /// Folders inside the zip are flattened, as earlier releases did. Every file is extracted to
-    /// a staging folder first, so a bad zip leaves the installed mods alone.
+    /// Extracts a package. Each zip entry is matched to a path the info json lists, and goes to
+    /// that path under the game folder (ModFilesGameDirectory) or the mods folder (ModFiles). A
+    /// game file it replaces is kept as a backup. Files the json doesn't list go flat into the
+    /// mods folder, as earlier releases did. Every file is extracted to a staging folder first,
+    /// so a bad zip leaves the installed mods alone.
     /// </summary>
     public void Install(ModPackage package, IEnumerable<InstalledMod>? replacing = null)
     {
         var info = package.Info;
-        var gameNames = Canonical(info.ModFilesGameDirectory);
-        var modNames = Canonical(info.ModFiles);
 
         using var archive = ZipFile.OpenRead(package.ZipPath);
         var infoEntry = archive.Entries.First(e => e.FullName == package.InfoEntryName);
@@ -118,20 +117,22 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
         var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in archive.Entries)
         {
-            var name = Mod.FileName(entry.FullName);
-            if (entry == infoEntry || name.Length == 0 || !Path.HasExtension(name))
+            var entryPath = Mod.RelativePath(entry.FullName);
+            var name = Mod.FileName(entryPath);
+            if (entry == infoEntry || name.Length == 0 || !Path.HasExtension(name) || IsJunk(entryPath))
                 continue;
             if (name.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && ReadInfo(entry) != null)
                 continue; // another mod's info file, such as a variant in the same zip
 
-            // Use the json's spelling so the files can be found again on a case-sensitive disk.
-            var toGame = gameNames.TryGetValue(name, out var canonical);
-            if (!toGame)
-                canonical = modNames.GetValueOrDefault(name, name);
+            // The json's spelling wins so the files can be found again on a case-sensitive disk.
+            var listed = MatchListed(info.ModFilesGameDirectory, entryPath, name);
+            var toGame = listed != null;
+            listed ??= MatchListed(info.ModFiles, entryPath, name);
+            var relative = listed ?? name;
 
-            var target = SafeCombine(toGame ? GameDirectory : ModsDirectory, canonical!);
+            var target = SafeCombine(toGame ? GameDirectory : ModsDirectory, relative);
             if (targets.Add(target))
-                files.Add((entry, target, canonical!, toGame));
+                files.Add((entry, target, relative, toGame));
         }
 
         var staging = Path.Combine(ModsDirectory, $".tml-install-{Guid.NewGuid():N}");
@@ -147,6 +148,7 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
             for (var i = 0; i < files.Count; i++)
             {
                 var (_, target, _, toGame) = files[i];
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 if (toGame && File.Exists(target) && !File.Exists(target + BackupSuffix))
                     File.Move(target, target + BackupSuffix);
                 File.Move(Path.Combine(staging, i.ToString()), target, overwrite: true);
@@ -177,12 +179,17 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
         if (info.InstalledGameFiles == null)
             modsFolderFiles = modsFolderFiles.Concat(info.ModFilesGameDirectory); // earlier releases put these in the mods folder
 
+        // A json could list "../" paths; those are skipped rather than deleted.
         foreach (var file in modsFolderFiles.Distinct(StringComparer.OrdinalIgnoreCase))
-            DeleteIfExists(Path.Combine(ModsDirectory, file));
+        {
+            if (Inside(ModsDirectory, file) is { } path)
+                DeleteIfExists(path);
+        }
 
         foreach (var file in info.InstalledGameFiles ?? [])
         {
-            var path = Path.Combine(GameDirectory, file);
+            if (Inside(GameDirectory, file) is not { } path)
+                continue;
             DeleteIfExists(path);
             if (File.Exists(path + BackupSuffix))
                 File.Move(path + BackupSuffix, path);
@@ -211,7 +218,8 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
     {
         foreach (var file in info.ModFiles)
         {
-            if (!file.StartsWith("_resdesc_", StringComparison.OrdinalIgnoreCase) || !file.EndsWith(".lua", StringComparison.OrdinalIgnoreCase))
+            var name = Mod.FileName(file);
+            if (!name.StartsWith("_resdesc_", StringComparison.OrdinalIgnoreCase) || !name.EndsWith(".lua", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             byte[] bytes;
@@ -267,21 +275,43 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
         return path;
     }
 
-    private static Dictionary<string, string> Canonical(IEnumerable<string> names)
+    /// <summary>
+    /// The path the json lists for a zip entry: one the entry's path ends with, or failing
+    /// that the only listed path with the same file name. Null when the json doesn't list it.
+    /// </summary>
+    private static string? MatchListed(IReadOnlyList<string> listed, string entryPath, string name)
     {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var name in names)
-            map.TryAdd(name, name);
-        return map;
+        var exact = listed.FirstOrDefault(l =>
+            entryPath.Equals(l, StringComparison.OrdinalIgnoreCase) || entryPath.EndsWith("/" + l, StringComparison.OrdinalIgnoreCase));
+        if (exact != null)
+            return exact;
+
+        var sameName = listed.Where(l => Mod.FileName(l).Equals(name, StringComparison.OrdinalIgnoreCase)).Take(2).ToList();
+        return sameName.Count == 1 ? sameName[0] : null;
     }
 
-    private static string SafeCombine(string directory, string fileName)
+    /// <summary>Files that archivers and file browsers add, such as the __MACOSX folder from macOS zips.</summary>
+    internal static bool IsJunk(string path)
+    {
+        var relative = Mod.RelativePath(path);
+        var name = Mod.FileName(relative);
+        return relative.Split('/').Contains("__MACOSX", StringComparer.OrdinalIgnoreCase)
+            || name.StartsWith("._", StringComparison.Ordinal)
+            || name.Equals(".DS_Store", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("desktop.ini", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string SafeCombine(string directory, string relativePath) =>
+        Inside(directory, relativePath)
+        ?? throw new ModPackageException($"The mod lists a file, '{relativePath}', that would land outside the game folder.");
+
+    /// <summary>The full path of a relative path under a folder, or null when it points outside it.</summary>
+    private static string? Inside(string directory, string relativePath)
     {
         var root = Path.EndsInDirectorySeparator(directory) ? directory : directory + Path.DirectorySeparatorChar;
-        var path = Path.GetFullPath(Path.Combine(root, fileName));
-        if (!path.StartsWith(root, StringComparison.Ordinal) || Path.GetDirectoryName(path) != Path.TrimEndingDirectorySeparator(directory))
-            throw new ModPackageException($"The zip has a file named '{fileName}' that would land outside the game folder.");
-        return path;
+        var path = Path.GetFullPath(Path.Combine(root, relativePath));
+        return path.StartsWith(root, StringComparison.Ordinal) ? path : null;
     }
 
     private static ModPackageException Unsupported(NotSupportedException e) =>
