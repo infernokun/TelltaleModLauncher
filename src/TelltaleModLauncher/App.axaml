@@ -1,0 +1,83 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TelltaleModLauncher.App"
+             RequestedThemeVariant="Dark">
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#F2A93B" RegionColor="#15181E" />
+        <ColorPaletteResources x:Key="Light" Accent="#C9811A" RegionColor="#ECE8E1" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://TelltaleModLauncher/Styles/Theme.axaml" />
+  </Application.Styles>
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://TelltaleModLauncher/Styles/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <FontFamily x:Key="BodyFont">avares://TelltaleModLauncher/Assets/Fonts#Barlow</FontFamily>
+      <FontFamily x:Key="DisplayFont">avares://TelltaleModLauncher/Assets/Fonts#Barlow Condensed</FontFamily>
+      <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, DejaVu Sans Mono, Liberation Mono, monospace</FontFamily>
+      <SolidColorBrush x:Key="AccentBrush" Color="#F2A93B" />
+      <SolidColorBrush x:Key="AccentHoverBrush" Color="#F6BB5E" />
+      <SolidColorBrush x:Key="OnAccentBrush" Color="#14110C" />
+
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F1115" />
+          <SolidColorBrush x:Key="SidebarBrush" Color="#15181E" />
+          <SolidColorBrush x:Key="HeroBrush" Color="#1A1D23" />
+          <LinearGradientBrush x:Key="HeroScrimBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#001A1D23" />
+            <GradientStop Offset="0.85" Color="#1A1D23" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="CardBrush" Color="#171A20" />
+          <SolidColorBrush x:Key="BadgeBrush" Color="#23272F" />
+          <SolidColorBrush x:Key="LineBrush" Color="#23272F" />
+          <SolidColorBrush x:Key="ControlLineBrush" Color="#343A45" />
+          <SolidColorBrush x:Key="ControlBrush" Color="#171A20" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#1E222A" />
+          <SolidColorBrush x:Key="SelectedBrush" Color="#20242C" />
+          <SolidColorBrush x:Key="TextBrush" Color="#E9E6E1" />
+          <SolidColorBrush x:Key="MutedBrush" Color="#9AA1AD" />
+          <SolidColorBrush x:Key="SubtleBrush" Color="#6F7682" />
+          <SolidColorBrush x:Key="AccentTextBrush" Color="#F6DFB8" />
+          <SolidColorBrush x:Key="AccentStrongBrush" Color="#F2A93B" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#F2C66D" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#FF9B9B" />
+          <SolidColorBrush x:Key="DangerFillBrush" Color="#C2413B" />
+          <SolidColorBrush x:Key="DimBrush" Color="#B30A0C10" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F6F4F0" />
+          <SolidColorBrush x:Key="SidebarBrush" Color="#ECE8E1" />
+          <SolidColorBrush x:Key="HeroBrush" Color="#E4DED3" />
+          <LinearGradientBrush x:Key="HeroScrimBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#00E4DED3" />
+            <GradientStop Offset="0.85" Color="#E4DED3" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="BadgeBrush" Color="#F0EBE3" />
+          <SolidColorBrush x:Key="LineBrush" Color="#DDD6CA" />
+          <SolidColorBrush x:Key="ControlLineBrush" Color="#C9C1B3" />
+          <SolidColorBrush x:Key="ControlBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#E3DED5" />
+          <SolidColorBrush x:Key="SelectedBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="TextBrush" Color="#1D1B18" />
+          <SolidColorBrush x:Key="MutedBrush" Color="#5F5A52" />
+          <SolidColorBrush x:Key="SubtleBrush" Color="#7A7369" />
+          <SolidColorBrush x:Key="AccentTextBrush" Color="#7A4600" />
+          <SolidColorBrush x:Key="AccentStrongBrush" Color="#9A5B00" />
+          <SolidColorBrush x:Key="WarningBrush" Color="#8A5A00" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#B42318" />
+          <SolidColorBrush x:Key="DangerFillBrush" Color="#B42318" />
+          <SolidColorBrush x:Key="DimBrush" Color="#991D1B18" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

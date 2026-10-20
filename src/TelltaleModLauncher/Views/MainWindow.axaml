@@ -1,0 +1,201 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TelltaleModLauncher.ViewModels"
+        xmlns:c="using:TelltaleModLauncher.Controls"
+        x:Class="TelltaleModLauncher.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Telltale Mod Launcher"
+        Icon="avares://TelltaleModLauncher/Assets/icon.ico"
+        Width="1180" Height="760" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
+
+  <Grid ColumnDefinitions="260,*">
+
+    <!-- Sidebar -->
+    <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
+      <DockPanel Margin="16,24,16,20">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="8,0,8,24">
+          <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource AccentBrush}">
+            <c:StrokeIcon Data="{StaticResource IconWrench}" Foreground="{DynamicResource OnAccentBrush}" StrokeThickness="2.2" />
+          </Border>
+          <TextBlock Classes="display" Text="MOD LAUNCHER" FontSize="19" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*" Margin="8,16,8,0">
+          <Button Classes="icon" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings" AutomationProperties.Name="Settings">
+            <c:StrokeIcon Data="{StaticResource IconGear}" Width="20" Height="20" />
+          </Button>
+          <TextBlock Grid.Column="1" Classes="muted" Text="{Binding AppVersion}" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
+
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="section" Text="GAMES" Margin="8,0,8,8" />
+          <ScrollViewer>
+            <StackPanel Spacing="4">
+              <ListBox Classes="games" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}"
+                       ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Games">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:GameItemViewModel">
+                    <Grid ColumnDefinitions="Auto,*" Background="Transparent">
+                      <Grid.ContextMenu>
+                        <ContextMenu>
+                          <MenuItem Header="Change game location..." Command="{Binding ChangeLocationCommand}" />
+                          <MenuItem Header="Remove from launcher" Command="{Binding RemoveCommand}" />
+                        </ContextMenu>
+                      </Grid.ContextMenu>
+                      <Border Width="36" Height="48" CornerRadius="4" Background="{DynamicResource BadgeBrush}" ClipToBounds="True">
+                        <Panel>
+                          <TextBlock Classes="display" Text="{Binding Initial}" FontSize="20" Foreground="{DynamicResource MutedBrush}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasArt}" />
+                          <Image Source="{Binding Art}" Stretch="UniformToFill" IsVisible="{Binding HasArt}" />
+                        </Panel>
+                      </Border>
+                      <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                        <TextBlock Classes="muted" Text="{Binding Meta}" FontSize="12" />
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Button Classes="dashed" Command="{Binding AddGameCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <c:StrokeIcon Data="{StaticResource IconPlus}" Width="16" Height="16" />
+                  <TextBlock Text="Add a game" FontSize="14" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- First run -->
+    <StackPanel Grid.Column="1" IsVisible="{Binding !HasGames}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="460" Spacing="16">
+      <TextBlock Classes="display" Text="ADD YOUR FIRST GAME" FontSize="40" HorizontalAlignment="Center" />
+      <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center" FontSize="16"
+                 Text="Point the launcher at a Telltale game's exe. It finds the game's Archives folder and installs mods there." />
+      <Button Classes="primary" HorizontalAlignment="Center" Command="{Binding AddGameCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <c:StrokeIcon Data="{StaticResource IconPlus}" />
+          <TextBlock Text="Add a game" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+
+    <!-- Selected game -->
+    <Grid Grid.Column="1" RowDefinitions="Auto,*" IsVisible="{Binding HasGames}">
+      <Border Grid.Row="0" MinHeight="300" Background="{DynamicResource HeroBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" ClipToBounds="True">
+        <Panel>
+          <Image Source="{Binding SelectedGame.Art}" Stretch="UniformToFill" IsVisible="{Binding SelectedGame.HasArt}" />
+          <Border IsVisible="{Binding SelectedGame.HasArt}" Background="{DynamicResource HeroScrimBrush}" />
+          <StackPanel VerticalAlignment="Bottom" Margin="48,40" Spacing="20">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="eyebrow" Text="{Binding SelectedGame.Tagline}" />
+              <TextBlock Classes="display" Text="{Binding SelectedGame.HeroTitle}" FontSize="58" LineHeight="62" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0" IsVisible="{Binding HasGameProblem}">
+                <c:StrokeIcon Data="{StaticResource IconAlert}" Foreground="{DynamicResource WarningBrush}" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0" />
+                <TextBlock Classes="warning" Text="{Binding GameProblem}" TextWrapping="Wrap" MaxWidth="640" />
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Button Classes="primary" Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <c:StrokeIcon Data="{StaticResource IconPlay}" Filled="True" />
+                  <TextBlock Text="{Binding PlayLabel}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Classes="icon" Width="52" Height="52" Background="Transparent" Command="{Binding OpenGameFolderCommand}" IsEnabled="{Binding CanPlay}"
+                      ToolTip.Tip="Open game folder" AutomationProperties.Name="Open game folder">
+                <c:StrokeIcon Data="{StaticResource IconFolder}" Width="20" Height="20" />
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Panel>
+      </Border>
+
+      <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*" Margin="48,32,48,24">
+        <DockPanel Grid.Row="0">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+            <Button Classes="outline accent-outline" Command="{Binding AddModCommand}" IsEnabled="{Binding CanManageMods}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:StrokeIcon Data="{StaticResource IconPlus}" Width="16" Height="16" />
+                <TextBlock Text="Add mod" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="icon" Command="{Binding RefreshCommand}" IsEnabled="{Binding CanManageMods}" ToolTip.Tip="Refresh mods" AutomationProperties.Name="Refresh mods">
+              <c:StrokeIcon Data="{StaticResource IconRefresh}" />
+            </Button>
+            <Button Classes="outline" Content="Remove all" Command="{Binding RemoveAllCommand}" IsEnabled="{Binding HasMods}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <TextBlock Classes="display" Text="INSTALLED MODS" FontSize="26" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Border Background="{DynamicResource BadgeBrush}" CornerRadius="999" Padding="10,2" VerticalAlignment="Center">
+              <TextBlock Text="{Binding ModCount}" FontSize="13" />
+            </Border>
+          </StackPanel>
+        </DockPanel>
+
+        <TextBlock Grid.Row="1" Classes="muted" FontSize="13" Margin="0,12,0,16" TextWrapping="Wrap"
+                   Text="Mods with a higher priority load over lower ones. Drop a mod .zip anywhere on this window to install it." />
+
+        <Panel Grid.Row="2">
+          <ScrollViewer IsVisible="{Binding HasMods}">
+            <ItemsControl ItemsSource="{Binding Mods}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModItemViewModel">
+                  <Border Classes="card" Margin="0,0,0,8" MinHeight="72" Padding="16,12">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <Border Width="56" Height="40" CornerRadius="8" Background="{DynamicResource BadgeBrush}" VerticalAlignment="Center" ToolTip.Tip="{Binding PriorityTip}">
+                        <TextBlock Classes="display" Text="{Binding PriorityText}" FontSize="18" Foreground="{DynamicResource AccentStrongBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" Text="{Binding Meta}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0" IsVisible="{Binding HasMissingFiles}">
+                          <c:StrokeIcon Data="{StaticResource IconAlert}" Foreground="{DynamicResource WarningBrush}" Width="14" Height="14" />
+                          <TextBlock Classes="warning" Text="{Binding MissingText}" FontSize="13" />
+                        </StackPanel>
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button Classes="icon ghost" Command="{Binding ViewCommand}" ToolTip.Tip="View mod files" AutomationProperties.Name="View mod files">
+                          <c:StrokeIcon Data="{StaticResource IconEye}" />
+                        </Button>
+                        <Button Classes="icon ghost" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove mod" AutomationProperties.Name="Remove mod">
+                          <c:StrokeIcon Data="{StaticResource IconTrash}" />
+                        </Button>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <Panel IsVisible="{Binding ShowNoMods}" VerticalAlignment="Top" MinHeight="160">
+            <Rectangle Stroke="{DynamicResource ControlLineBrush}" StrokeThickness="1" StrokeDashArray="4,3" RadiusX="10" RadiusY="10" />
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+              <c:StrokeIcon Data="{StaticResource IconUpload}" Width="28" Height="28" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" />
+              <TextBlock Text="No mods installed yet" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Center" />
+              <TextBlock Classes="muted" Text="Drop a mod's release .zip here, or use Add mod." HorizontalAlignment="Center" />
+            </StackPanel>
+          </Panel>
+        </Panel>
+      </Grid>
+    </Grid>
+
+    <!-- Overlays -->
+    <Border Grid.ColumnSpan="2" Background="{DynamicResource DimBrush}" IsVisible="{Binding IsDimmed}" />
+    <Border Grid.ColumnSpan="2" Background="{DynamicResource DimBrush}" IsVisible="{Binding IsDragOver}" IsHitTestVisible="False">
+      <Panel Margin="24">
+        <Rectangle Stroke="{DynamicResource AccentBrush}" StrokeThickness="2" StrokeDashArray="6,4" RadiusX="16" RadiusY="16" />
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+          <c:StrokeIcon Data="{StaticResource IconUpload}" Width="40" Height="40" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" />
+          <TextBlock Classes="display" Text="DROP TO INSTALL" FontSize="32" Foreground="White" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Panel>
+    </Border>
+  </Grid>
+</Window>

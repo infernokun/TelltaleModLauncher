@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:TelltaleModLauncher.Views"
+        xmlns:c="using:TelltaleModLauncher.Controls"
+        x:Class="TelltaleModLauncher.Views.GameSetupWindow"
+        Title="Add a game"
+        Width="580" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="28,24" Spacing="18">
+    <TextBlock x:Name="Heading" Classes="display" FontSize="28" Text="ADD A GAME" />
+
+    <StackPanel Spacing="6">
+      <TextBlock Classes="section" Text="GAME" />
+      <ComboBox x:Name="GamePicker" HorizontalAlignment="Stretch" MinHeight="44" MaxDropDownHeight="360" AutomationProperties.Name="Game">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="v:GameOption">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+              <TextBlock Classes="muted" Text="{Binding Note}" FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </StackPanel>
+
+    <StackPanel Spacing="6">
+      <TextBlock Classes="section" Text="GAME EXECUTABLE" />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox x:Name="ExePath" MinHeight="44" VerticalContentAlignment="Center" PlaceholderText="Path to the game's .exe" AutomationProperties.Name="Game executable" />
+        <Button Grid.Column="1" Classes="outline" Margin="8,0,0,0" Content="Browse..." Click="OnBrowse" />
+      </Grid>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+        <c:StrokeIcon x:Name="StatusIcon" Data="{StaticResource IconAlert}" Foreground="{DynamicResource WarningBrush}" Width="14" Height="14" VerticalAlignment="Top" Margin="0,3,0,0" />
+        <TextBlock x:Name="Status" FontSize="13" TextWrapping="Wrap" MaxWidth="500" />
+      </StackPanel>
+    </StackPanel>
+
+    <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap"
+               Text="Using Steam? Right-click the game in your library, then pick Manage, Browse local files to find its folder." />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="outline" Content="Cancel" IsCancel="True" Click="OnCancel" />
+      <Button x:Name="SaveButton" Classes="primary" MinHeight="44" Padding="20,0" FontSize="15" Content="Add game" IsDefault="True" Click="OnSave" />
+    </StackPanel>
+  </StackPanel>
+</Window>
