@@ -53,8 +53,23 @@ public class MainWindowRenderTests
         }
     }
 
+    /// <summary>Turns the fake exe into one carrying a 256 px icon, so the UI has a logo to show.</summary>
+    private static void GiveIcon(string exe)
+    {
+        using var bitmap = new RenderTargetBitmap(new PixelSize(256, 256));
+        using (var context = bitmap.CreateDrawingContext())
+        {
+            context.DrawRectangle(new SolidColorBrush(Color.Parse("#7A1F1F")), null, new RoundedRect(new Rect(0, 0, 256, 256), 48));
+            context.DrawEllipse(new SolidColorBrush(Color.Parse("#E9E6E1")), null, new Point(128, 128), 72, 72);
+        }
+        using var png = new MemoryStream();
+        bitmap.Save(png);
+        File.WriteAllBytes(exe, FakeExe.WithIcon((256, png.ToArray())));
+    }
+
     private static AppSettings WithMods(TestFolder folder, string exe)
     {
+        GiveIcon(exe);
         var settings = AppSettings.Load(folder.ConfigPath);
         settings.For(GameVersion.The_Walking_Dead_Definitive_Series).SetExe(exe);
         settings.Save();
@@ -76,6 +91,7 @@ public class MainWindowRenderTests
         var window = Open(WithMods(folder, folder.CreateGame()));
 
         var vm = (MainWindowViewModel)window.DataContext!;
+        Assert.True(vm.SelectedGame?.HasIcon);
         Assert.Equal(["Graphic Black Disabler for S4", "Load Any Level"], vm.Mods.Select(m => m.Name));
         Assert.Equal("Play with 2 mods", vm.PlayLabel);
         Save(window, "library-dark.png");
@@ -100,6 +116,19 @@ public class MainWindowRenderTests
         window.Close();
     }
 
+    /// <summary>Set REAL_EXE to a game exe to check its icon decodes, whether stored as PNG or bitmap.</summary>
+    [AvaloniaFact]
+    public void A_real_exe_icon_decodes()
+    {
+        var exe = Environment.GetEnvironmentVariable("REAL_EXE");
+        Assert.SkipUnless(!string.IsNullOrEmpty(exe) && File.Exists(exe), "Set REAL_EXE to a Windows exe that has an icon.");
+
+        using var icon = GameItemViewModel.LoadIcon(exe!);
+
+        Assert.NotNull(icon);
+        Assert.True(icon.PixelSize.Width >= 32, $"{icon.PixelSize}");
+    }
+
     [AvaloniaFact]
     public void Renders_the_dialogs()
     {
@@ -119,6 +148,7 @@ public class MainWindowRenderTests
         var setup = new GameSetupWindow(new GameSetupRequest(null, exe, []));
         setup.Show();
         Assert.True(setup.FindControl<Button>("SaveButton")!.IsEnabled);
+        Assert.True(setup.FindControl<Image>("ExeIconPreview")!.IsVisible);
         Save(setup, "dialog-add-game.png", 580);
 
         var message = new MessageWindow("Remove mod", "Remove 'Load Any Level'? Its files are deleted from the game folder.", "Remove", "Cancel", true);

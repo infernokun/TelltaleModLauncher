@@ -15,6 +15,7 @@ public sealed partial class GameItemViewModel : ObservableObject
         Steam = settings.ExeExists ? Core.Steam.FindApp(settings.Game_LocationExe) : null;
         Title = string.IsNullOrWhiteSpace(Steam?.Name) ? Name : Steam.Name;
         Art = LoadArt(Steam);
+        Icon = settings.ExeExists ? LoadIcon(settings.Game_LocationExe) : null;
         ChangeLocationCommand = new AsyncRelayCommand(() => changeLocation(this));
         RemoveCommand = new AsyncRelayCommand(() => remove(this));
     }
@@ -29,6 +30,14 @@ public sealed partial class GameItemViewModel : ObservableObject
     public SteamApp? Steam { get; }
     public Bitmap? Art { get; }
     public bool HasArt => Art != null;
+
+    /// <summary>The icon embedded in the game's exe.</summary>
+    public Bitmap? Icon { get; }
+    public bool HasIcon => Icon != null;
+
+    /// <summary>Sidebar thumbnail: the exe icon, else a crop of the Steam artwork, else the initial.</summary>
+    public Bitmap? Thumbnail => Icon ?? Art;
+    public bool HasThumbnail => Thumbnail != null;
     public string Initial => Name[..1];
 
     public IAsyncRelayCommand ChangeLocationCommand { get; }
@@ -44,6 +53,21 @@ public sealed partial class GameItemViewModel : ObservableObject
         Meta = !Settings.ExeExists ? $"{status} · Not found"
             : modCount is { } n ? $"{status} · {n} {(n == 1 ? "mod" : "mods")}"
             : status;
+    }
+
+    public static Bitmap? LoadIcon(string exePath)
+    {
+        if (ExeIcon.TryRead(exePath) is not { } data)
+            return null;
+
+        try
+        {
+            return new Bitmap(new MemoryStream(data));
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException or NotSupportedException or IOException)
+        {
+            return null;
+        }
     }
 
     private static Bitmap? LoadArt(SteamApp? steam)

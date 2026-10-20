@@ -43,6 +43,8 @@ public partial class GameSetupWindow : Window
         Validate();
     }
 
+    private string? iconPath;
+
     private string Exe => ExePath.Text?.Trim().Trim('"') ?? "";
 
     private void Validate()
@@ -69,6 +71,15 @@ public partial class GameSetupWindow : Window
         Status.Classes.Set("warning", !ok && Exe.Length > 0);
         StatusIcon.IsVisible = Exe.Length > 0 && !ok;
         SaveButton.IsEnabled = ok;
+
+        // The exe's own icon confirms the right file was picked. Only reread it when the path changes.
+        var exe = ok ? Exe : null;
+        if (exe != iconPath)
+        {
+            iconPath = exe;
+            ExeIconPreview.Source = exe == null ? null : GameItemViewModel.LoadIcon(exe);
+        }
+        ExeIconPreview.IsVisible = ExeIconPreview.Source != null;
     }
 
     private async void OnBrowse(object? sender, RoutedEventArgs e)

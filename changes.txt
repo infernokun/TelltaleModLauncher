@@ -25,6 +25,7 @@ v0.7.0 (W.I.P)
 - [Added] Install a mod by dropping its .zip anywhere on the window.
 - [Added] On Linux, Play starts a Steam copy of the game through Steam (Proton), or runs it with Wine when it isn't in a Steam library.
 - [Added] Steam's library artwork is shown behind the selected game when Steam has it cached.
+- [Added] The game's own icon, read from its exe, is shown in the game list, above the game's title and in "Add a game" once the exe is picked. This works on Windows and Linux.
 - [Added] Mod priority is read from the mod's resource description (_resdesc_*.lua) when that file is plain text, and shown next to each mod. Changing priorities is not in yet.
 - [Added] The mod details window lists which files went to the mods folder and which to the game folder, and previews .txt, .ini, .json and plain .lua files.
 - [Added] Mods with missing files are flagged in the list instead of being deleted on startup.
@@ -34,7 +35,7 @@ v0.7.0 (W.I.P)
 - [Added] Mods (if supported) can now place files in the game directory automatically (useful since some mods will have .ini config files)
 - [Removed] ttarchexe depedency, which has now been replaced by LibTelltale (By Lucas Saragosa).
 - [Removed] The resource description editor that needed LibTelltale. Nothing called it and LibTelltale.dll was never in the repo, so the project could not build.
-- [Removed] The exe icon preview, MahApps.Metro, Ookii.Dialogs, Newtonsoft.Json and IconExtractor.dll.
+- [Removed] The old exe icon preview code (IconExtractor.dll, which only worked on Windows), MahApps.Metro, Ookii.Dialogs and Newtonsoft.Json.
 - [Fix] Fixed issue when the launcher would crash when opening mod files that were not properly structured. (i.e. if you downloaded the source code zip of a project rather than the actual mod zip). Now it warns the user and displays an error
 - [Fix] Fixed issue when the launcher would crash on startup due to the file system watcher for mod refreshing
 - [Fix] Files listed in ModFilesGameDirectory are copied next to the game exe. Before, the list was read into ModFiles by mistake and those files were never placed.

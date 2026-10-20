@@ -30,8 +30,9 @@
         <Button Grid.Column="1" Classes="outline" Margin="8,0,0,0" Content="Browse..." Click="OnBrowse" />
       </Grid>
       <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+        <Image x:Name="ExeIconPreview" Width="32" Height="32" Margin="0,0,4,0" VerticalAlignment="Center" IsVisible="False" />
         <c:StrokeIcon x:Name="StatusIcon" Data="{StaticResource IconAlert}" Foreground="{DynamicResource WarningBrush}" Width="14" Height="14" VerticalAlignment="Top" Margin="0,3,0,0" />
-        <TextBlock x:Name="Status" FontSize="13" TextWrapping="Wrap" MaxWidth="500" />
+        <TextBlock x:Name="Status" FontSize="13" TextWrapping="Wrap" MaxWidth="480" VerticalAlignment="Center" />
       </StackPanel>
     </StackPanel>
 

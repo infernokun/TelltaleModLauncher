@@ -44,11 +44,11 @@
                           <MenuItem Header="Remove from launcher" Command="{Binding RemoveCommand}" />
                         </ContextMenu>
                       </Grid.ContextMenu>
-                      <Border Width="36" Height="48" CornerRadius="4" Background="{DynamicResource BadgeBrush}" ClipToBounds="True">
+                      <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource BadgeBrush}" ClipToBounds="True" VerticalAlignment="Center">
                         <Panel>
                           <TextBlock Classes="display" Text="{Binding Initial}" FontSize="20" Foreground="{DynamicResource MutedBrush}"
-                                     HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasArt}" />
-                          <Image Source="{Binding Art}" Stretch="UniformToFill" IsVisible="{Binding HasArt}" />
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasThumbnail}" />
+                          <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
                         </Panel>
                       </Border>
                       <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="2">
@@ -92,7 +92,12 @@
           <Border IsVisible="{Binding SelectedGame.HasArt}" Background="{DynamicResource HeroScrimBrush}" />
           <StackPanel VerticalAlignment="Bottom" Margin="48,40" Spacing="20">
             <StackPanel Spacing="4">
-              <TextBlock Classes="eyebrow" Text="{Binding SelectedGame.Tagline}" />
+              <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,6">
+                <Border Width="44" Height="44" CornerRadius="10" ClipToBounds="True" VerticalAlignment="Center" IsVisible="{Binding SelectedGame.HasIcon}">
+                  <Image Source="{Binding SelectedGame.Icon}" Stretch="Uniform" />
+                </Border>
+                <TextBlock Classes="eyebrow" Text="{Binding SelectedGame.Tagline}" VerticalAlignment="Center" />
+              </StackPanel>
               <TextBlock Classes="display" Text="{Binding SelectedGame.HeroTitle}" FontSize="58" LineHeight="62" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0" IsVisible="{Binding HasGameProblem}">
                 <c:StrokeIcon Data="{StaticResource IconAlert}" Foreground="{DynamicResource WarningBrush}" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0" />
