@@ -195,6 +195,6 @@ public sealed class AppSettings
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
         var temp = FilePath + ".tmp";
         File.WriteAllText(temp, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-        File.Move(temp, FilePath, overwrite: true);
+        FileOps.Move(temp, FilePath, overwrite: true);
     }
 }

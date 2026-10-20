@@ -150,8 +150,8 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
                 var (_, target, _, toGame) = files[i];
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 if (toGame && File.Exists(target) && !File.Exists(target + BackupSuffix))
-                    File.Move(target, target + BackupSuffix);
-                File.Move(Path.Combine(staging, i.ToString()), target, overwrite: true);
+                    FileOps.Move(target, target + BackupSuffix);
+                FileOps.Move(Path.Combine(staging, i.ToString()), target, overwrite: true);
             }
 
             WriteInfo(infoEntry, files.Where(f => !f.ToGame).Select(f => f.Name), files.Where(f => f.ToGame).Select(f => f.Name));
@@ -192,7 +192,7 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
                 continue;
             DeleteIfExists(path);
             if (File.Exists(path + BackupSuffix))
-                File.Move(path + BackupSuffix, path);
+                FileOps.Move(path + BackupSuffix, path);
         }
 
         DeleteIfExists(mod.InfoFilePath);
@@ -317,11 +317,7 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
     private static ModPackageException Unsupported(NotSupportedException e) =>
         new("This zip uses a compression method the launcher can't read. Zip the files again with standard (Deflate) compression.", e);
 
-    private static void DeleteIfExists(string path)
-    {
-        if (File.Exists(path))
-            File.Delete(path);
-    }
+    private static void DeleteIfExists(string path) => FileOps.Delete(path);
 
     [GeneratedRegex(@"set\.priority\s*=\s*(-?\d+)")]
     private static partial Regex PriorityPattern();

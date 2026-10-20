@@ -63,7 +63,8 @@ public class SteamTests
     {
         using var folder = new TestFolder();
         var app = Steam.FindApp(CreateSteamGame(folder))!;
-        var art = Path.Combine(app.LibraryPath, "appcache", "librarycache", relative);
+        // InlineData uses '/', but the lookup returns native separators, so build the path to match.
+        var art = Path.Combine(app.LibraryPath, "appcache", "librarycache", relative.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(Path.GetDirectoryName(art)!);
         File.WriteAllText(art, "");
 
