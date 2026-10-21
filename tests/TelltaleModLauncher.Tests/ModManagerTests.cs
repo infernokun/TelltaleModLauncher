@@ -195,26 +195,62 @@ public class ModManagerTests
     }
 
     [Fact]
-    public void Extra_files_in_the_zip_are_removed_with_the_mod()
+    public void Unlisted_extras_stay_out_of_the_game_folder()
     {
         using var folder = new TestFolder();
         var (manager, _, modsDir) = NewGame(folder);
+        // Shaped like a release zip that also ships manual install scripts and docs.
         var zip = folder.CreateZip("extras.zip", new()
         {
-            ["modinfo.json"] = """{ "ModDisplayName": "Extras", "ModFiles": ["Extras.ttarch2"] }""",
+            ["modinfo.json"] = """{ "ModDisplayName": "Extras", "ModFiles": ["Extras.ttarch2", "_resdesc_50_Extras.lua"] }""",
             ["Extras.ttarch2"] = "",
+            ["_resdesc_50_Extras.lua"] = "set.priority = 700",
             ["readme.txt"] = "read me",
+            ["README.md"] = "# Extras",
+            ["install.ps1"] = "Copy-Item ...",
+            ["tools/common.ps1"] = "function Find-GameDir {}",
             ["variant/modinfo.json"] = """{ "ModDisplayName": "Extras (variant)", "ModFiles": ["Variant.ttarch2"] }""",
         });
 
         manager.Install(ModManager.ReadPackage(zip));
         var mod = Assert.Single(manager.Scan());
-        Assert.True(File.Exists(Path.Combine(modsDir, "readme.txt")));
+
+        AssertFiles(["_resdesc_50_Extras.lua", "Extras.ttarch2", "modinfo.json"], modsDir);
         Assert.Empty(Directory.GetDirectories(modsDir));
 
         manager.Remove(mod);
         Assert.Empty(Directory.GetFiles(modsDir));
     }
+
+    [Fact]
+    public void Archives_and_resource_files_the_json_forgot_are_still_installed()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        var zip = folder.CreateZip("sloppy.zip", new()
+        {
+            ["modinfo.json"] = """{ "ModDisplayName": "Sloppy", "ModFiles": ["Sloppy.ttarch2"] }""",
+            ["Sloppy.ttarch2"] = "",
+            ["data/Sloppy_extra.ttarch2"] = "",
+            ["_resdesc_50_Sloppy.lua"] = "",
+            ["Old.ttarch"] = "",
+            ["_resdesc_Old.lenc"] = "",
+            ["notes.txt"] = "",
+        });
+
+        manager.Install(ModManager.ReadPackage(zip));
+        var mod = Assert.Single(manager.Scan());
+
+        AssertFiles(["_resdesc_50_Sloppy.lua", "_resdesc_Old.lenc", "Old.ttarch", "Sloppy.ttarch2", "Sloppy_extra.ttarch2", "modinfo.json"], modsDir);
+        Assert.False(mod.HasMissingFiles);
+
+        manager.Remove(mod);
+        Assert.Empty(Directory.GetFiles(modsDir));
+    }
+
+    private static void AssertFiles(string[] expected, string dir) =>
+        Assert.Equal(expected.Order(StringComparer.OrdinalIgnoreCase),
+            Directory.GetFiles(dir).Select(f => Path.GetFileName(f)).Order(StringComparer.OrdinalIgnoreCase));
 
     [Fact]
     public void Zip_names_are_matched_to_the_json_spelling_and_backslashes_are_folders()

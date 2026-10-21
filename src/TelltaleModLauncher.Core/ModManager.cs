@@ -102,9 +102,11 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
     /// <summary>
     /// Extracts a package. Each zip entry is matched to a path the info json lists, and goes to
     /// that path under the game folder (ModFilesGameDirectory) or the mods folder (ModFiles). A
-    /// game file it replaces is kept as a backup. Files the json doesn't list go flat into the
-    /// mods folder, as earlier releases did. Every file is extracted to a staging folder first,
-    /// so a bad zip leaves the installed mods alone.
+    /// game file it replaces is kept as a backup. A file the json doesn't list is only installed
+    /// when the game can load it (an archive or a resource description), in case a mod forgot to
+    /// list one, and goes flat into the mods folder as earlier releases did. Readmes, scripts and
+    /// other extras that only matter to people stay out of the game folder. Every file is
+    /// extracted to a staging folder first, so a bad zip leaves the installed mods alone.
     /// </summary>
     public void Install(ModPackage package, IEnumerable<InstalledMod>? replacing = null)
     {
@@ -128,6 +130,8 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
             var listed = MatchListed(info.ModFilesGameDirectory, entryPath, name);
             var toGame = listed != null;
             listed ??= MatchListed(info.ModFiles, entryPath, name);
+            if (listed == null && !IsGameLoadable(name))
+                continue;
             var relative = listed ?? name;
 
             var target = SafeCombine(toGame ? GameDirectory : ModsDirectory, relative);
@@ -289,6 +293,13 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
         var sameName = listed.Where(l => Mod.FileName(l).Equals(name, StringComparison.OrdinalIgnoreCase)).Take(2).ToList();
         return sameName.Count == 1 ? sameName[0] : null;
     }
+
+    /// <summary>
+    /// File types the engine reads from the mods folder: archives, and the resource description
+    /// scripts that register them (plain .lua, or .lenc in older games).
+    /// </summary>
+    internal static bool IsGameLoadable(string fileName) =>
+        Path.GetExtension(fileName).ToLowerInvariant() is ".ttarch2" or ".ttarch" or ".lua" or ".lenc";
 
     /// <summary>Files that archivers and file browsers add, such as the __MACOSX folder from macOS zips.</summary>
     internal static bool IsJunk(string path)
