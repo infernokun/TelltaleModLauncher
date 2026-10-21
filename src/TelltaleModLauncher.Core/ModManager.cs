@@ -148,6 +148,11 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
             for (var i = 0; i < files.Count; i++)
                 files[i].Entry.ExtractToFile(Path.Combine(staging, i.ToString()));
 
+            // Updating a mod brings back the zip's resource description, which would undo the
+            // place the user dragged it to. Keep the installed version's priority instead.
+            var previous = replacing?.FirstOrDefault(m => string.Equals(m.Info.ModDisplayName, info.ModDisplayName, StringComparison.OrdinalIgnoreCase));
+            var keepPriority = previous is { Priority: { } p } && CanSetPriority(previous) ? p : (int?)null;
+
             foreach (var mod in replacing ?? [])
                 Remove(mod);
 
@@ -161,6 +166,14 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
             }
 
             WriteInfo(infoEntry, files.Where(f => !f.ToGame).Select(f => f.Name), files.Where(f => f.ToGame).Select(f => f.Name));
+
+            if (keepPriority is { } priority
+                && Scan().FirstOrDefault(m => string.Equals(m.Info.ModDisplayName, info.ModDisplayName, StringComparison.OrdinalIgnoreCase)) is { } updated
+                && updated.Priority != priority
+                && CanSetPriority(updated))
+            {
+                SetPriority(updated, priority);
+            }
         }
         catch (NotSupportedException e)
         {

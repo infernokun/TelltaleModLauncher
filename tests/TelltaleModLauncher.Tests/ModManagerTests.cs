@@ -218,6 +218,29 @@ public class ModManagerTests
     }
 
     [Fact]
+    public void Updating_a_mod_keeps_the_priority_the_user_gave_it()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        var installed = InstallWithPriority(manager, folder, "Mod", 700);
+        manager.SetPriority(installed, 1200);
+
+        // The new version ships its resource description at the author's 700 again.
+        var zip = folder.CreateZip("Mod_2.0.0.zip", new()
+        {
+            ["modinfo_Mod.json"] = """{ "ModDisplayName": "Mod", "ModVersion": "2.0.0", "ModFiles": ["Mod.ttarch2", "_resdesc_50_Mod.lua"] }""",
+            ["Mod.ttarch2"] = "new",
+            ["_resdesc_50_Mod.lua"] = "local set = {}\nset.priority = 700\nRegisterSetDescription(set)\n",
+        });
+        manager.Install(ModManager.ReadPackage(zip), manager.Scan());
+
+        var updated = Assert.Single(manager.Scan());
+        Assert.Equal("2.0.0", updated.Info.ModVersion);
+        Assert.Equal(1200, updated.Priority);
+        Assert.Equal("new", File.ReadAllText(Path.Combine(modsDir, "Mod.ttarch2")));
+    }
+
+    [Fact]
     public void Mods_whose_priority_cant_be_edited_are_left_alone()
     {
         using var folder = new TestFolder();
