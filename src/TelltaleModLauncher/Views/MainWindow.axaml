@@ -143,20 +143,31 @@
         </DockPanel>
 
         <TextBlock Grid.Row="1" Classes="muted" FontSize="13" Margin="0,12,0,16" TextWrapping="Wrap"
-                   Text="Mods with a higher priority load over lower ones. Drop a mod .zip anywhere on this window to install it." />
+                   Text="Mods higher in the list load over the ones below. Drag a mod to change the order. Drop a mod .zip anywhere on this window to install it." />
 
         <Panel Grid.Row="2">
           <ScrollViewer IsVisible="{Binding HasMods}">
-            <ItemsControl ItemsSource="{Binding Mods}">
+            <ItemsControl x:Name="ModList" ItemsSource="{Binding Mods}" Padding="0,2">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ModItemViewModel">
-                  <Border Classes="card" Margin="0,0,0,8" MinHeight="72" Padding="16,12">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                      <Border Width="56" Height="40" CornerRadius="8" Background="{DynamicResource BadgeBrush}" VerticalAlignment="Center" ToolTip.Tip="{Binding PriorityTip}">
+                  <Panel Margin="0,4">
+                  <Border Classes="card" MinHeight="72" Padding="12,12,16,12"
+                          Classes.dragging="{Binding IsDragging}" Classes.reorderable="{Binding CanReorder}">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
+                        <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
+                      </ContextMenu>
+                    </Border.ContextMenu>
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                      <c:StrokeIcon Data="{StaticResource IconGrip}" Filled="True" Width="16" Height="16" Margin="0,0,8,0"
+                                    Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"
+                                    IsVisible="{Binding CanReorder}" ToolTip.Tip="Drag to change the load order" />
+                      <Border Grid.Column="1" Width="56" Height="40" CornerRadius="8" Background="{DynamicResource BadgeBrush}" VerticalAlignment="Center" ToolTip.Tip="{Binding PriorityTip}">
                         <TextBlock Classes="display" Text="{Binding PriorityText}" FontSize="18" Foreground="{DynamicResource AccentStrongBrush}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center" Spacing="2">
+                      <StackPanel Grid.Column="2" Margin="16,0" VerticalAlignment="Center" Spacing="2">
                         <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                         <TextBlock Classes="muted" Text="{Binding Meta}" FontSize="13" TextTrimming="CharacterEllipsis" />
                         <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0" IsVisible="{Binding HasMissingFiles}">
@@ -164,7 +175,7 @@
                           <TextBlock Classes="warning" Text="{Binding MissingText}" FontSize="13" />
                         </StackPanel>
                       </StackPanel>
-                      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <Button Classes="icon ghost" Command="{Binding ViewCommand}" ToolTip.Tip="View mod files" AutomationProperties.Name="View mod files">
                           <c:StrokeIcon Data="{StaticResource IconEye}" />
                         </Button>
@@ -174,6 +185,10 @@
                       </StackPanel>
                     </Grid>
                   </Border>
+                  <!-- Where the dragged mod would land, centred in the 8px gap between cards. -->
+                  <Border Classes="drop-line" VerticalAlignment="Top" Margin="0,-5.5,0,0" IsVisible="{Binding DropAbove}" />
+                  <Border Classes="drop-line" VerticalAlignment="Bottom" Margin="0,0,0,-5.5" IsVisible="{Binding DropBelow}" />
+                  </Panel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>

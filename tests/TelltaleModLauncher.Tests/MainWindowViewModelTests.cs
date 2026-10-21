@@ -152,6 +152,31 @@ public class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task Moving_a_mod_rewrites_priorities_to_match_the_list()
+    {
+        using var folder = new TestFolder();
+        var (vm, _, _, modsDir) = Setup(folder);
+        await vm.InstallZipAsync(folder.CreateModZip("First", files: ["First.ttarch2", "_resdesc_50_First.lua"], infoName: "first.json"));
+        await vm.InstallZipAsync(folder.CreateModZip("Second", files: ["Second.ttarch2", "_resdesc_50_Second.lua"], infoName: "second.json"));
+        await vm.InstallZipAsync(folder.CreateModZip("Third", files: ["Third.ttarch2"], infoName: "third.json"));
+        File.WriteAllText(Path.Combine(modsDir, "_resdesc_50_First.lua"), "set.priority = 900\n");
+        File.WriteAllText(Path.Combine(modsDir, "_resdesc_50_Second.lua"), "set.priority = 700\n");
+        vm.RefreshCommand.Execute(null);
+        Assert.Equal(["First", "Second", "Third"], vm.Mods.Select(m => m.Name));
+        Assert.Equal([true, true, false], vm.Mods.Select(m => m.CanReorder));
+
+        await vm.MoveModAsync(vm.Mods[1], 0);
+
+        Assert.Equal(["Second", "First", "Third"], vm.Mods.Select(m => m.Name));
+        Assert.Equal(900, ResourceDescription.ReadPriority(Path.Combine(modsDir, "_resdesc_50_Second.lua")));
+        Assert.Equal(700, ResourceDescription.ReadPriority(Path.Combine(modsDir, "_resdesc_50_First.lua")));
+
+        await vm.Mods[0].MoveDownCommand.ExecuteAsync(null);
+        Assert.Equal(["First", "Second", "Third"], vm.Mods.Select(m => m.Name));
+        Assert.False(vm.Mods[2].MoveUpCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task Removing_a_game_keeps_its_mods_on_disk()
     {
         using var folder = new TestFolder();

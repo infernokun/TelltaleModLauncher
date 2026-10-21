@@ -109,7 +109,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             {
                 manager = new ModManager(modsDirectory, gameSettings.Game_Location);
                 foreach (var mod in manager.Scan())
-                    Mods.Add(new ModItemViewModel(mod, ViewModAsync, RemoveModAsync));
+                    Mods.Add(new ModItemViewModel(mod, ViewModAsync, RemoveModAsync, MoveByAsync, manager.CanSetPriority(mod)));
             }
             game.UpdateMeta(manager != null ? Mods.Count : null);
         }
@@ -295,6 +295,28 @@ public sealed partial class MainWindowViewModel : ObservableObject
         await RunAsync("Couldn't remove every mod", () => installed.ForEach(mods.Remove));
     }
 
+    /// <summary>
+    /// Moves a mod to a new place in the list and rewrites priorities to match, so the mods
+    /// higher in the list load over the ones below. The json's priority is only the author's
+    /// suggestion; this decides what the game actually uses.
+    /// </summary>
+    public async Task MoveModAsync(ModItemViewModel mod, int newIndex)
+    {
+        if (busy || manager is not { } mods || !mod.CanReorder)
+            return;
+        var order = Mods.ToList();
+        var oldIndex = order.IndexOf(mod);
+        newIndex = Math.Clamp(newIndex, 0, order.Count - 1);
+        if (oldIndex < 0 || oldIndex == newIndex)
+            return;
+
+        order.RemoveAt(oldIndex);
+        order.Insert(newIndex, mod);
+        await RunAsync("Couldn't change the load order", () => mods.Reorder(order.Select(m => m.Mod).ToList()));
+    }
+
+    private Task MoveByAsync(ModItemViewModel mod, int delta) => MoveModAsync(mod, Mods.IndexOf(mod) + delta);
+
     private async Task RunAsync(string failureTitle, Action action)
     {
         busy = true;
@@ -302,7 +324,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             await Task.Run(action);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             await shell.ShowMessageAsync(failureTitle, e.Message);
         }

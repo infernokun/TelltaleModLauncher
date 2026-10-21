@@ -36,7 +36,9 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
                     continue;
 
                 var missing = ListedFiles(info).Where(f => !File.Exists(PathOf(info, f))).ToList();
-                mods.Add(new InstalledMod(info, jsonPath, missing, info.ModResourcePriority ?? ReadResdescPriority(info)));
+                // The resource description is what the game reads. The json's value is only the
+                // author's suggestion, used when the file can't be read.
+                mods.Add(new InstalledMod(info, jsonPath, missing, ReadResdescPriority(info) ?? info.ModResourcePriority));
             }
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -214,35 +216,80 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
     private static IEnumerable<string> ListedFiles(Mod info) =>
         info.ModFiles.Concat(info.InstalledGameFiles ?? info.ModFilesGameDirectory).Distinct(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>The mod's resource descriptions (_resdesc_*.lua) that are in the mods folder.</summary>
+    private IEnumerable<string> ResdescPaths(Mod info) =>
+        info.ModFiles.Concat(info.InstalledFiles ?? [])
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(f => ResourceDescription.IsResourceDescription(Mod.FileName(f)) && !IsInGameFolder(info, f))
+            .Select(f => Path.Combine(ModsDirectory, f))
+            .Where(File.Exists);
+
     /// <summary>
-    /// Archive priority from the mod's resource description (_resdesc_*.lua). Only plain text
-    /// files can be read; encrypted ones start with an escape byte and are skipped.
+    /// The priority the game will use: the highest <c>set.priority</c> in the mod's resource
+    /// descriptions, plain or encrypted. Null when none can be read.
     /// </summary>
     internal int? ReadResdescPriority(Mod info)
     {
-        foreach (var file in info.ModFiles)
+        var priorities = ResdescPaths(info).Select(ResourceDescription.ReadPriority).Where(p => p.HasValue).ToList();
+        return priorities.Count > 0 ? priorities.Max() : null;
+    }
+
+    /// <summary>True when every resource description of the mod can be read and rewritten.</summary>
+    public bool CanSetPriority(InstalledMod mod)
+    {
+        var paths = ResdescPaths(mod.Info).ToList();
+        return paths.Count > 0 && paths.All(p => ResourceDescription.ReadPriority(p).HasValue);
+    }
+
+    /// <summary>
+    /// Gives the mod a new priority. A mod with several resource descriptions keeps their
+    /// spacing: each one moves by the same amount, so the highest ends up at the new value.
+    /// </summary>
+    public void SetPriority(InstalledMod mod, int priority)
+    {
+        var current = ResdescPaths(mod.Info).Select(p => (Path: p, Priority: ResourceDescription.ReadPriority(p))).ToList();
+        if (current.Count == 0 || current.Any(c => c.Priority == null))
+            throw new InvalidDataException($"{mod.Info.ModDisplayName} has no resource description the launcher can edit.");
+
+        var delta = priority - current.Max(c => c.Priority!.Value);
+        if (delta == 0)
+            return;
+        foreach (var (path, p) in current)
+            ResourceDescription.WritePriority(path, p!.Value + delta);
+    }
+
+    /// <summary>Spacing used when two mods would end up with the same priority.</summary>
+    public const int PriorityStep = 10;
+
+    /// <summary>
+    /// Priorities that put the mods in the given order, first one loading over the rest. The
+    /// numbers the mods already use are handed out again in the new order, so a mod moved to
+    /// the top gets the highest of them; ties are spread apart by <see cref="PriorityStep"/>.
+    /// </summary>
+    public static IReadOnlyList<int> PrioritiesForOrder(IReadOnlyList<int> current)
+    {
+        var result = current.OrderDescending().ToArray();
+        for (var i = result.Length - 2; i >= 0; i--)
         {
-            var name = Mod.FileName(file);
-            if (!name.StartsWith("_resdesc_", StringComparison.OrdinalIgnoreCase) || !name.EndsWith(".lua", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            byte[] bytes;
-            try
-            {
-                bytes = File.ReadAllBytes(Path.Combine(ModsDirectory, file));
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                continue;
-            }
-            if (bytes.Length == 0 || bytes[0] == 0x1B)
-                continue;
-
-            var match = PriorityPattern().Match(Encoding.UTF8.GetString(bytes));
-            if (match.Success && int.TryParse(match.Groups[1].Value, out var priority))
-                return priority;
+            if (result[i] <= result[i + 1])
+                result[i] = result[i + 1] + PriorityStep;
         }
-        return null;
+        return result;
+    }
+
+    /// <summary>
+    /// Rewrites priorities so the mods load in the given order, first one over the rest. Mods
+    /// whose priority can't be edited are left as they are.
+    /// </summary>
+    public void Reorder(IReadOnlyList<InstalledMod> order)
+    {
+        var editable = order.Where(m => m.Priority.HasValue && CanSetPriority(m)).ToList();
+        var targets = PrioritiesForOrder(editable.Select(m => m.Priority!.Value).ToList());
+        for (var i = 0; i < editable.Count; i++)
+        {
+            if (editable[i].Priority != targets[i])
+                SetPriority(editable[i], targets[i]);
+        }
     }
 
     private static Mod? ReadInfo(ZipArchiveEntry entry)
@@ -329,7 +376,4 @@ public sealed partial class ModManager(string modsDirectory, string gameDirector
         new("This zip uses a compression method the launcher can't read. Zip the files again with standard (Deflate) compression.", e);
 
     private static void DeleteIfExists(string path) => FileOps.Delete(path);
-
-    [GeneratedRegex(@"set\.priority\s*=\s*(-?\d+)")]
-    private static partial Regex PriorityPattern();
 }

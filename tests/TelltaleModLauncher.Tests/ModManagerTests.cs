@@ -156,6 +156,86 @@ public class ModManagerTests
         Assert.Equal([1100, 900, (int?)null], mods.Select(m => m.Priority));
     }
 
+    private static InstalledMod InstallWithPriority(ModManager manager, TestFolder folder, string name, params int[] priorities)
+    {
+        var files = priorities.Select((_, i) => $"_resdesc_50_{name}{(i == 0 ? "" : i.ToString())}.lua").ToArray();
+        manager.Install(ModManager.ReadPackage(folder.CreateModZip(name, files: [$"{name}.ttarch2", .. files], infoName: $"modinfo_{name}.json")));
+        for (var i = 0; i < files.Length; i++)
+            File.WriteAllText(Path.Combine(manager.ModsDirectory, files[i]), $"local set = {{}}\nset.priority = {priorities[i]}\nRegisterSetDescription(set)\n");
+        return manager.Scan().Single(m => m.Info.ModDisplayName == name);
+    }
+
+    [Fact]
+    public void The_resdesc_priority_wins_over_the_json_suggestion()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        InstallWithPriority(manager, folder, "Mod", 900);
+        var json = Path.Combine(modsDir, "modinfo_Mod.json");
+        File.WriteAllText(json, File.ReadAllText(json).Replace("\"ModFiles\"", "\"ModResourcePriority\": 100, \"ModFiles\""));
+
+        Assert.Equal(900, Assert.Single(manager.Scan()).Priority);
+    }
+
+    [Fact]
+    public void Reordering_hands_the_existing_priorities_out_in_the_new_order()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, _) = NewGame(folder);
+        var low = InstallWithPriority(manager, folder, "Low", 700);
+        var high = InstallWithPriority(manager, folder, "High", 900);
+        Assert.Equal(["High", "Low"], manager.Scan().Select(m => m.Info.ModDisplayName));
+
+        manager.Reorder([low, high]);
+
+        var mods = manager.Scan();
+        Assert.Equal(["Low", "High"], mods.Select(m => m.Info.ModDisplayName));
+        Assert.Equal([900, 700], mods.Select(m => m.Priority));
+    }
+
+    [Theory]
+    [InlineData(new[] { 900, 700, 500 }, new[] { 900, 700, 500 })]
+    [InlineData(new[] { 500, 700, 900 }, new[] { 900, 700, 500 })]
+    [InlineData(new[] { 800, 800, 800 }, new[] { 820, 810, 800 })]
+    [InlineData(new[] { 1000, 990, 990 }, new[] { 1010, 1000, 990 })]
+    public void New_priorities_reuse_the_old_numbers_and_split_ties(int[] current, int[] expected)
+    {
+        Assert.Equal(expected, ModManager.PrioritiesForOrder(current));
+    }
+
+    [Fact]
+    public void A_mod_with_several_resdescs_keeps_their_spacing()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        var multi = InstallWithPriority(manager, folder, "Multi", 900, 850);
+
+        manager.SetPriority(multi, 1000);
+
+        Assert.Equal(1000, ResourceDescription.ReadPriority(Path.Combine(modsDir, "_resdesc_50_Multi.lua")));
+        Assert.Equal(950, ResourceDescription.ReadPriority(Path.Combine(modsDir, "_resdesc_50_Multi1.lua")));
+        Assert.Equal(1000, Assert.Single(manager.Scan()).Priority);
+    }
+
+    [Fact]
+    public void Mods_whose_priority_cant_be_edited_are_left_alone()
+    {
+        using var folder = new TestFolder();
+        var (manager, _, modsDir) = NewGame(folder);
+        var editable = InstallWithPriority(manager, folder, "Editable", 700);
+        manager.Install(ModManager.ReadPackage(folder.CreateModZip("Locked", files: ["Locked.ttarch2", "_resdesc_50_Locked.lua"], infoName: "locked.json")));
+        var lockedBytes = new byte[] { 0x1B, 0x4C, 0x45, 0x6E, 0x01, 0x02 };
+        File.WriteAllBytes(Path.Combine(modsDir, "_resdesc_50_Locked.lua"), lockedBytes);
+        var locked = manager.Scan().Single(m => m.Info.ModDisplayName == "Locked");
+
+        Assert.True(manager.CanSetPriority(editable));
+        Assert.False(manager.CanSetPriority(locked));
+        manager.Reorder([locked, editable]);
+
+        Assert.Equal(lockedBytes, File.ReadAllBytes(Path.Combine(modsDir, "_resdesc_50_Locked.lua")));
+        Assert.Throws<InvalidDataException>(() => manager.SetPriority(locked, 5));
+    }
+
     [Fact]
     public void A_game_file_the_mod_replaces_comes_back_on_remove()
     {

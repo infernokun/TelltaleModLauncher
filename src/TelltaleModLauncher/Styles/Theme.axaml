@@ -190,4 +190,21 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="10" />
   </Style>
+
+  <!-- Mod cards that can be dragged to change the load order. -->
+  <Style Selector="Border.card.reorderable">
+    <Setter Property="Cursor" Value="SizeNorthSouth" />
+  </Style>
+  <Style Selector="Border.card.reorderable Button">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Border.card.dragging">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+  <Style Selector="Border.drop-line">
+    <Setter Property="Height" Value="3" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
 </Styles>

@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
@@ -95,6 +97,70 @@ public class MainWindowRenderTests
         Assert.Equal(["Graphic Black Disabler for S4", "Load Any Level"], vm.Mods.Select(m => m.Name));
         Assert.Equal("Play with 2 mods", vm.PlayLabel);
         Save(window, "library-dark.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Dragging_a_mod_above_another_changes_the_load_order()
+    {
+        using var folder = new TestFolder();
+        var exe = folder.CreateGame();
+        var window = Open(WithMods(folder, exe));
+        var vm = (MainWindowViewModel)window.DataContext!;
+        var list = window.FindControl<ItemsControl>("ModList")!;
+        window.UpdateLayout();
+        Assert.Equal(["Graphic Black Disabler for S4", "Load Any Level"], vm.Mods.Select(m => m.Name));
+        Assert.All(vm.Mods, m => Assert.True(m.CanReorder));
+
+        Point At(int index, double fraction)
+        {
+            var card = list.ContainerFromIndex(index)!;
+            return card.TranslatePoint(new Point(240, card.Bounds.Height * fraction), window)!.Value;
+        }
+
+        var start = At(1, 0.5);
+        var target = At(0, 0.2);
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Point(0, -12));
+        window.MouseMove(target);
+
+        Assert.True(vm.Mods[1].IsDragging);
+        Assert.True(vm.Mods[0].DropAbove);
+        Save(window, "library-reorder.png");
+
+        window.MouseUp(target, MouseButton.Left);
+        for (var i = 0; i < 300 && vm.Mods[0].Name != "Load Any Level"; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
+
+        Assert.Equal(["Load Any Level", "Graphic Black Disabler for S4"], vm.Mods.Select(m => m.Name));
+        Assert.All(vm.Mods, m => Assert.False(m.IsDragging || m.DropAbove || m.DropBelow));
+        var archives = Path.Combine(Path.GetDirectoryName(exe)!, "Archives");
+        Assert.Equal(1100, ResourceDescription.ReadPriority(Path.Combine(archives, "_resdesc_50_LoadAnyLevel.lua")));
+        Assert.Equal(1000, ResourceDescription.ReadPriority(Path.Combine(archives, "_resdesc_50_GraphicBlackDisabler.lua")));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Clicking_a_mod_without_dragging_changes_nothing()
+    {
+        using var folder = new TestFolder();
+        var window = Open(WithMods(folder, folder.CreateGame()));
+        var vm = (MainWindowViewModel)window.DataContext!;
+        var list = window.FindControl<ItemsControl>("ModList")!;
+        window.UpdateLayout();
+        var card = list.ContainerFromIndex(1)!;
+        var point = card.TranslatePoint(new Point(240, card.Bounds.Height / 2), window)!.Value;
+
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseMove(point + new Point(0, -3));
+        window.MouseUp(point + new Point(0, -3), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["Graphic Black Disabler for S4", "Load Any Level"], vm.Mods.Select(m => m.Name));
+        Assert.All(vm.Mods, m => Assert.False(m.IsDragging));
         window.Close();
     }
 
