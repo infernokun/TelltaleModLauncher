@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:TelltaleModLauncher.Controls"
+        x:Class="TelltaleModLauncher.Views.SettingsWindow"
+        Title="Settings"
+        Width="500" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="28,24" Spacing="18">
+    <TextBlock Classes="display" FontSize="28" Text="SETTINGS" />
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="Light theme" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" FontSize="13" Text="Use a light background instead of the dark one." TextWrapping="Wrap" />
+      </StackPanel>
+      <ToggleSwitch x:Name="LightTheme" Grid.Column="1" OnContent="" OffContent="" AutomationProperties.Name="Light theme" />
+    </Grid>
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="Dim the launcher behind dialogs" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" FontSize="13" Text="Darkens the main window while a dialog is open." TextWrapping="Wrap" />
+      </StackPanel>
+      <ToggleSwitch x:Name="DimWindow" Grid.Column="1" OnContent="" OffContent="" AutomationProperties.Name="Dim the launcher behind dialogs" />
+    </Grid>
+
+    <StackPanel Spacing="4">
+      <TextBlock Classes="section" Text="SETTINGS FILE" />
+      <SelectableTextBlock x:Name="ConfigPath" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+      <Button Classes="outline" HorizontalAlignment="Left" Click="OnHelp">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <c:StrokeIcon Data="{StaticResource IconHelp}" Width="16" Height="16" />
+          <TextBlock Text="Help and setup guide" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <Button Grid.Column="1" Classes="primary" MinHeight="44" Padding="20,0" FontSize="15" Content="Done" IsDefault="True" IsCancel="True" Click="OnDone" />
+    </Grid>
+  </StackPanel>
+</Window>

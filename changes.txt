@@ -15,17 +15,38 @@ v0.6.5 (3rd release)
 - [Removed] Removed the dependencies tab and it's options since it's not needed, and other depedencies are handled internally. No setup needed for the user.
 
 v0.7.0 (W.I.P)
-- [Added] Support for most other Telltale Games (not all have been tested)
-- [Added] Launch Game Exe Icon preview
-- [Added] Window Defocusing effect when opening other windows in the app (helps with useability, can be toggled off)
-- [Added] Double click to browse for fields that display a file path
-- [Added] Tooltips to every interactable element (mouse over and it tells you about said element)
-- [Added] Mod list refresh button, it's also automated as well in the background.
-- [Added] Mod refresh to the context menu
-- [Added] Mods (if supported) can now place files in the game directory automatically (useful since some mods will have .ini config files)
-- [Added] Mod priorities are now displayed and visible, mod priorities can also be set and modified
+- [Changed] Rebuilt on .NET 10 and Avalonia, so the launcher runs on Windows and Linux.
+- [Changed] New layout. Your games are listed on the left, the selected game sits at the top with a Play button, and its mods are listed below.
+- [Changed] The setup wizard is replaced by "Add a game", and more than one game can be set up at once. Right-click a game to change its location or remove it.
+- [Changed] The launcher opens on the last game you picked, which replaces the Default Game Version setting.
 - [Changed] Mods are now sorted by priority
 - [Changed] Can still add/replace a mod even if it has both the same name and version (will give you a prompt instead of not allowing you to do it)
+- [Added] Support for most other Telltale Games (not all have been tested)
+- [Added] Install a mod by dropping its .zip anywhere on the window.
+- [Added] On Linux, Play starts a Steam copy of the game through Steam (Proton), or runs it with Wine when it isn't in a Steam library.
+- [Added] Steam's library artwork is shown behind the selected game when Steam has it cached.
+- [Added] The game's own icon, read from its exe, is shown in the game list, above the game's title and in "Add a game" once the exe is picked. This works on Windows and Linux.
+- [Added] Mod priority is read from the mod's resource description (_resdesc_*.lua) when that file is plain text, and shown next to each mod. Changing priorities is not in yet.
+- [Added] The mod details window lists which files went to the mods folder and which to the game folder, and previews .txt, .ini, .json and plain .lua files.
+- [Added] Mods with missing files are flagged in the list instead of being deleted on startup.
+- [Added] Window Defocusing effect when opening other windows in the app (helps with useability, can be toggled off)
+- [Added] Tooltips on the icon buttons and on the priority badge.
+- [Added] Mod list refresh button. The list also refreshes when you switch back to the launcher.
+- [Added] Mods (if supported) can now place files in the game directory automatically (useful since some mods will have .ini config files)
 - [Removed] ttarchexe depedency, which has now been replaced by LibTelltale (By Lucas Saragosa).
+- [Removed] The resource description editor that needed LibTelltale. Nothing called it and LibTelltale.dll was never in the repo, so the project could not build.
+- [Removed] The old exe icon preview code (IconExtractor.dll, which only worked on Windows), MahApps.Metro, Ookii.Dialogs and Newtonsoft.Json.
 - [Fix] Fixed issue when the launcher would crash when opening mod files that were not properly structured. (i.e. if you downloaded the source code zip of a project rather than the actual mod zip). Now it warns the user and displays an error
 - [Fix] Fixed issue when the launcher would crash on startup due to the file system watcher for mod refreshing
+- [Fix] Files listed in ModFilesGameDirectory are copied next to the game exe. Before, the list was read into ModFiles by mistake and those files were never placed.
+- [Fix] A mod's game compatibility is checked even when no other mods are installed.
+- [Fix] Choosing to remove conflicting mods now goes on to install the new mod instead of stopping.
+- [Fix] Two mods whose info files have the same name no longer overwrite each other.
+- [Fix] Remove all only deletes mod info files, not every .json in the Archives folder.
+- [Fix] Mod zips are read in place instead of extracting the info file next to the download.
+- [Fix] A settings file that can't be read is backed up and replaced instead of leaving the launcher half loaded.
+- [Fix] Mods that say they are for "The_Walking_Dead_Definitive_Edition", which every mod on the supported list does, are accepted as Definitive Series mods. Before, the first mod installed but every mod after it was rejected.
+- [Fix] Adding a mod no longer races a folder watcher that could delete the mod's files halfway through the install. This is the likely cause of mods vanishing after a restart and of mods not loading in game (upstream issues #1 and #2).
+- [Fix] __MACOSX folders and ._ files in a zip are skipped. Load Any Level 3.2 ships them, and before it could not be added and left junk files in Archives.
+- [Fix] ModFiles entries with subfolders, used by games with Packs or Pack folders, are installed into those subfolders.
+- [Changed] A mod that names a game the launcher doesn't know asks whether to install it anyway instead of refusing.

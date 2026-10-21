@@ -17,10 +17,15 @@
 ***NOTE (9/6/21): Apologies for the very very late update. I cannot predict when V0.7.0 will finally come but in the meantime I've updated the launcher to 0.6.5 which is mostly a quality-of-life update which makes the setup of the Launcher alot more simpler and less confusing (despite making a tutorial that is linked on this page that guides you how to set it up properly...)***
 
 ## Supported Games
-The launcher currently supports the following games.
-- **The Walking Dead Definitive Edition**
+The launcher has been tested with the following game.
+- **The Walking Dead: The Telltale Definitive Series**
 
-NOTE: The installer has not been tested with any other Telltale game besides 'The Walking Dead Definitive Edition' though future support is planned.
+Any other Telltale game can be added from the game list. These are marked as untested, since the launcher has only been tried with the Definitive Series so far.
+
+## Windows and Linux
+The launcher runs on Windows and Linux.
+
+On Linux, point it at the game's .exe inside your Steam library (for example `~/.local/share/Steam/steamapps/common/<game folder>`). Play starts the game through Steam so it runs under Proton. A copy that isn't in a Steam library runs with Wine if `wine` is installed.
 
 ## About
 This launcher is designed to make installing and managing mods for Telltale Games much easier through a very user friendly interface.
@@ -32,3 +37,23 @@ This launcher is designed to make installing and managing mods for Telltale Game
 Additional info can be found and asked in our **[Discord Server](https://discord.gg/rn8HvqZjZZ)**.
 
 ![Screenshot 1](screenshots/shot1.png)
+
+## Building
+You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```
+dotnet build
+dotnet test
+dotnet run --project src/TelltaleModLauncher
+```
+
+To make a single file build for one platform:
+
+```
+dotnet publish src/TelltaleModLauncher -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+dotnet publish src/TelltaleModLauncher -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true
+```
+
+The code is split into `src/TelltaleModLauncher.Core` (settings, mod install and removal, Steam lookup) and `src/TelltaleModLauncher` (the Avalonia app). Tests are in `tests/TelltaleModLauncher.Tests`. Set `SCREENSHOT_DIR` when running the tests to save renders of each window.
+
+The bundled Barlow fonts are under the SIL Open Font License, included next to them in `src/TelltaleModLauncher/Assets/Fonts/OFL.txt`.

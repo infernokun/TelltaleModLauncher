@@ -1,0 +1,14 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TelltaleModLauncher.Views.MessageWindow"
+        Width="480" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="28,24" Spacing="14">
+    <TextBlock x:Name="Heading" Classes="display" FontSize="26" TextWrapping="Wrap" />
+    <TextBlock x:Name="Body" Classes="muted" FontSize="15" LineHeight="22" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+      <Button x:Name="CancelButton" Classes="outline" IsCancel="True" Click="OnCancel" />
+      <Button x:Name="ConfirmButton" MinHeight="44" Padding="20,0" FontSize="15" IsDefault="True" Click="OnConfirm" />
+    </StackPanel>
+  </StackPanel>
+</Window>
